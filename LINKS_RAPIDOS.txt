@@ -1,0 +1,94 @@
+
+================================================================================
+LINKS RAPIDOS - INVESTFACIL NETLIFY
+================================================================================
+
+ARQUIVOS PARA DOWNLOAD:
+-----------------------
+Navegue no Databricks Workspace ate:
+/Users/fabiolrm78@gmail.com/InvestFacil/export/
+
+Arquivos disponiveis:
+1. index.html         (12.36 KB) - Site completo funcional
+2. indicadores.json   (107.67 KB) - Dados de 251 acoes  
+3. historico.json     (0 KB) - Vazio por enquanto
+4. metadata.json      (0.58 KB) - Metadados
+5. README.md          (1.31 KB) - Documentacao
+
+
+SERVICOS ONLINE NECESSARIOS:
+----------------------------
+1. Netlify (Deploy gratuito)
+   https://app.netlify.com/
+
+2. GitHub (Opcional - para deploy automatico)
+   https://github.com/new
+
+3. Netlify Drop (Deploy rapido sem conta GitHub)
+   https://app.netlify.com/drop
+
+
+VISUALIZACAO DO SITE:
+--------------------
+Apos o deploy no Netlify, seu site tera:
+
+URL exemplo: https://investfacil-b3.netlify.app
+
+Paginas/APIs disponiveis:
+- /                       (Interface web)
+- /indicadores.json       (API de dados)
+- /historico.json         (API de historico)
+- /metadata.json          (API de metadados)
+
+
+RECURSOS DO SITE:
+-----------------
+Interface interativa com:
+- Dashboard com estatisticas gerais
+- Filtros por: Ticker, Setor, DY minimo, P/L maximo
+- Tabela ordenada por Dividend Yield
+- Design moderno e responsivo
+- Funciona em mobile, tablet e desktop
+
+
+PROXIMOS PASSOS:
+---------------
+1. [AGORA] Baixar os 5 arquivos do Workspace
+2. [AGORA] Criar pasta "investfacil-site" no seu computador
+3. [AGORA] Arrastar para https://app.netlify.com/drop
+4. [5 MIN] Site no ar! Testar e validar
+5. [DEPOIS] Configurar S3 + CloudFront (faremos juntos)
+
+
+CHECKLIST:
+----------
+[ ] Arquivos baixados do Databricks
+[ ] Pasta "investfacil-site" criada
+[ ] Deploy feito no Netlify
+[ ] Site acessivel e funcionando
+[ ] Dados aparecem corretamente
+[ ] Filtros funcionando
+[ ] Pronto para configurar S3!
+
+
+DICAS:
+------
+- Use Chrome/Firefox para melhor compatibilidade
+- O site funciona offline (depois de carregado)
+- Os JSONs podem ser usados por outras aplicacoes
+- Personalize o index.html com suas cores/logo
+- Todos os dados sao estaticos (sem backend necessario)
+
+
+SUPORTE:
+--------
+Qualquer duvida ou erro, me avise:
+- Erro no download dos arquivos
+- Erro no deploy do Netlify  
+- Site nao carrega os dados
+- Quer personalizar o design
+- Pronto para configurar S3
+
+
+Boa sorte! Voce esta a poucos cliques de ter seu site no ar!
+================================================================================

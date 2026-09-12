@@ -1,0 +1,21 @@
+{
+  "projeto": "InvestFacil",
+  "versao": "1.0",
+  "ultima_atualizacao": "2026-09-12T22:50:22.091802",
+  "fonte_dados": "brapi.dev",
+  "bolsas": [
+    "B3"
+  ],
+  "total_acoes": 374,
+  "total_dias_historico": 0,
+  "indicadores_disponiveis": [
+    "dividend_yield",
+    "preco_lucro_pl",
+    "retorno_patrimonio_roe",
+    "volatilidade",
+    "momentum_30d",
+    "volume_medio"
+  ],
+  "descricao": "Dados atualizados diariamente. O usuario escolhe seus proprios criterios de investimento.",
+  "aviso": "Este site nao oferece consultoria financeira. Dados fornecidos apenas para fins educacionais."
+}
