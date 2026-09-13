@@ -582,12 +582,20 @@
         
         // Funcao para exportar Excel (XLSX)
         function exportarExcel() {
+            // Verificar se XLSX está carregado
+            if (typeof XLSX === 'undefined') {
+                alert('❌ Erro: Biblioteca SheetJS não carregada. Verifique sua conexão com a internet e recarregue a página.');
+                console.error('XLSX library not loaded');
+                return;
+            }
+            
             if (acoesFiltradasGlobal.length === 0) {
                 alert('⚠️ Nenhuma ação para exportar. Ajuste os filtros.');
                 return;
             }
             
-            // Preparar dados para o Excel
+            try {
+                // Preparar dados para o Excel
             const dados = acoesFiltradasGlobal.map(acao => ({
                 'Ticker': acao.ticker,
                 'Nome': acao.nome_completo || acao.nome_curto || 'N/D',
@@ -622,9 +630,15 @@
                 {wch: 12}   // Mínima 52s
             ];
             
-            // Download
-            const dataHora = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-            XLSX.writeFile(wb, `investfacil_${dataHora}.xlsx`);
+                // Download
+                const dataHora = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                XLSX.writeFile(wb, `investfacil_${dataHora}.xlsx`);
+                
+                console.log(`Excel exportado com sucesso: ${acoesFiltradasGlobal.length} ações`);
+            } catch (erro) {
+                console.error('Erro ao exportar Excel:', erro);
+                alert(`❌ Erro ao exportar Excel: ${erro.message}. Tente novamente ou use a exportação CSV.`);
+            }
         }
         
         // Funcao para exportar CSV
