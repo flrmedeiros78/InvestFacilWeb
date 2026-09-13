@@ -6,6 +6,10 @@
     <title>InvestFacil - Analisador de Ações B3</title>
     <meta name="description" content="Analisador gratuito de ações da B3. Filtre por dividend yield, P/L e outros indicadores fundamentalistas.">
     <meta name="robots" content="index, follow">
+    
+    <!-- SheetJS para exportação Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGvBylk90+2e/ycr+equG6tI3L3w7nWZkrPWkcSqnCmVh4dG1A7BnT7y1p4p8dJ9U8Q9KqK3gj3j1rQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
     <style>
         * {
             margin: 0;
@@ -197,6 +201,20 @@
             color: #0c5460;
         }
         
+        button {
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -216,6 +234,23 @@
             
             th, td {
                 padding: 10px 8px;
+            }
+            
+            #results > div:first-child {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            #results > div:first-child > div {
+                display: flex;
+                gap: 10px;
+                width: 100%;
+            }
+            
+            #results button {
+                flex: 1;
+                padding: 8px 12px;
+                font-size: 0.9em;
             }
         }
     </style>
@@ -294,7 +329,20 @@
         <div id="loading" class="loading">Carregando dados...</div>
         
         <div id="results" style="display: none;">
-            <h2>Resultados (<span id="count-results" aria-live="polite">0</span> ações)</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="margin: 0;">Resultados (<span id="count-results" aria-live="polite">0</span> ações)</h2>
+                <div>
+                    <button id="btn-export-excel" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600;">
+                        📈 Exportar Excel
+                    </button>
+                    <button id="btn-export-csv" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600;">
+                        📄 Exportar CSV
+                    </button>
+                    <button id="btn-export-json" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                        📊 Exportar JSON
+                    </button>
+                </div>
+            </div>
             <div class="table-wrapper">
                 <table>
                     <caption style="display: none;">Tabela de ações filtradas com indicadores fundamentalistas</caption>
@@ -441,6 +489,9 @@
             // Ordenar por DY decrescente
             resultados.sort((a, b) => (b.dividend_yield || 0) - (a.dividend_yield || 0));
             
+            // Salvar resultados para exportação
+            acoesFiltradasGlobal = resultados;
+            
             exibirResultados(resultados);
         }
         
@@ -526,11 +577,125 @@
             return urls[fonte] || urls['statusinvest'];
         }
         
+        // Variavel global para armazenar acoes filtradas
+        let acoesFiltradasGlobal = [];
+        
+        // Funcao para exportar Excel (XLSX)
+        function exportarExcel() {
+            if (acoesFiltradasGlobal.length === 0) {
+                alert('⚠️ Nenhuma ação para exportar. Ajuste os filtros.');
+                return;
+            }
+            
+            // Preparar dados para o Excel
+            const dados = acoesFiltradasGlobal.map(acao => ({
+                'Ticker': acao.ticker,
+                'Nome': acao.nome_completo || acao.nome_curto || 'N/D',
+                'Setor': acao.setor || 'N/D',
+                'Preço (R$)': acao.preco_atual != null ? acao.preco_atual : 'N/D',
+                'Dividend Yield (%)': acao.dividend_yield != null ? (acao.dividend_yield * 100).toFixed(2) : 'N/D',
+                'P/L': acao.preco_lucro_pl && acao.preco_lucro_pl > 0 ? acao.preco_lucro_pl.toFixed(2) : 'N/D',
+                'Beta': acao.beta != null ? acao.beta : 'N/D',
+                'Volume Médio': acao.volume_medio || 'N/D',
+                'Variação (%)': acao.variacao_dia != null ? acao.variacao_dia : 'N/D',
+                'Máxima 52sem': acao.maxima_52_semanas != null ? acao.maxima_52_semanas : 'N/D',
+                'Mínima 52sem': acao.minima_52_semanas != null ? acao.minima_52_semanas : 'N/D'
+            }));
+            
+            // Criar workbook e worksheet
+            const ws = XLSX.utils.json_to_sheet(dados);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Ações');
+            
+            // Adicionar largura das colunas
+            ws['!cols'] = [
+                {wch: 10},  // Ticker
+                {wch: 35},  // Nome
+                {wch: 25},  // Setor
+                {wch: 12},  // Preço
+                {wch: 18},  // DY
+                {wch: 10},  // P/L
+                {wch: 10},  // Beta
+                {wch: 15},  // Volume
+                {wch: 12},  // Variação
+                {wch: 12},  // Máxima 52s
+                {wch: 12}   // Mínima 52s
+            ];
+            
+            // Download
+            const dataHora = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            XLSX.writeFile(wb, `investfacil_${dataHora}.xlsx`);
+        }
+        
+        // Funcao para exportar CSV
+        
+        function exportarCSV() {
+            if (acoesFiltradasGlobal.length === 0) {
+                alert('⚠️ Nenhuma ação para exportar. Ajuste os filtros.');
+                return;
+            }
+            
+            // Cabeçalho do CSV
+            let csv = 'Ticker,Nome,Setor,Preço (R$),Dividend Yield (%),P/L,Beta,Volume Médio\n';
+            
+            // Adicionar linhas
+            acoesFiltradasGlobal.forEach(acao => {
+                csv += `${acao.ticker},`;
+                csv += `"${(acao.nome_completo || acao.nome_curto || 'N/D').replace(/"/g, '""')}",`;
+                csv += `"${(acao.setor || 'N/D').replace(/"/g, '""')}",`;
+                csv += `${acao.preco_atual != null ? acao.preco_atual.toFixed(2) : 'N/D'},`;
+                csv += `${acao.dividend_yield != null ? (acao.dividend_yield * 100).toFixed(2) : 'N/D'},`;
+                csv += `${acao.preco_lucro_pl && acao.preco_lucro_pl > 0 ? acao.preco_lucro_pl.toFixed(2) : 'N/D'},`;
+                csv += `${acao.beta != null ? acao.beta.toFixed(2) : 'N/D'},`;
+                csv += `${acao.volume_medio || 'N/D'}\n`;
+            });
+            
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const dataHora = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `investfacil_${dataHora}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Funcao para exportar JSON
+        function exportarJSON() {
+            if (acoesFiltradasGlobal.length === 0) {
+                alert('⚠️ Nenhuma ação para exportar. Ajuste os filtros.');
+                return;
+            }
+            
+            const json = JSON.stringify(acoesFiltradasGlobal, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const dataHora = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `investfacil_${dataHora}.json`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
         // Adicionar eventos aos filtros
         document.getElementById('filter-ticker').addEventListener('input', aplicarFiltros);
         document.getElementById('filter-setor').addEventListener('change', aplicarFiltros);
         document.getElementById('filter-dy').addEventListener('input', aplicarFiltros);
         document.getElementById('filter-pl').addEventListener('input', aplicarFiltros);
+        
+        // Atualizar links dos tickers quando trocar a fonte
+        document.getElementById('fonte-info').addEventListener('change', aplicarFiltros);
+        
+        // Eventos de exportação
+        document.getElementById('btn-export-excel').addEventListener('click', exportarExcel);
+        document.getElementById('btn-export-csv').addEventListener('click', exportarCSV);
+        document.getElementById('btn-export-json').addEventListener('click', exportarJSON);
         
         // Iniciar aplicacao
         carregarDados();
