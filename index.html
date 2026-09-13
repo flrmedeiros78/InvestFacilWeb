@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InvestFacil - Analisador de Acoes B3</title>
+    <title>InvestFacil - Analisador de Ações B3</title>
+    <meta name="description" content="Analisador gratuito de ações da B3. Filtre por dividend yield, P/L e outros indicadores fundamentalistas.">
+    <meta name="robots" content="index, follow">
     <style>
         * {
             margin: 0;
@@ -145,14 +147,93 @@
         
         .ticker {
             font-weight: bold;
+            color: #4c51bf;
+        }
+        
+        .ticker-link {
+            font-weight: bold;
+            color: #4c51bf;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .ticker-link:hover {
             color: #667eea;
+            text-decoration: underline;
+        }
+        
+        .ticker-link:visited {
+            color: #5a4db5;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        .disclaimer {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 0.95em;
+        }
+        
+        .disclaimer strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #856404;
+        }
+        
+        .info-note {
+            background: #d1ecf1;
+            border-left: 4px solid: #0c5460;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: #0c5460;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .stat-card h3 {
+                font-size: 1.5em;
+            }
+            
+            table {
+                font-size: 0.9em;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>InvestFacil</h1>
-        <p class="subtitle">Analisador de Acoes da B3 - Escolha seus proprios criterios</p>
+        <p class="subtitle">Analisador de Ações da B3 - Escolha seus próprios critérios</p>
+        
+        <div class="disclaimer">
+            <strong>⚠️ Aviso Importante:</strong>
+            Este site é apenas para fins educacionais e informativos. Não constitui consultoria financeira ou recomendação de investimento. Sempre consulte um profissional qualificado antes de tomar decisões de investimento.
+        </div>
+        
+        <div class="info-note">
+            <strong>📊 Sobre os Dados:</strong>
+            Cobertura: 50 principais ações do Ibovespa | Fonte: Yahoo Finance via Databricks | Atualização: Diária | Possível atraso: 15-20 minutos | Valores "N/D" indicam dados indisponíveis na fonte.
+        </div>
         
         <div id="error" class="error" style="display: none;"></div>
         
@@ -176,25 +257,36 @@
         </div>
         
         <div class="filters">
-            <h2 style="margin-bottom: 15px;">Filtros</h2>
+            <h2 style="margin-bottom: 15px;">Filtros e Configurações</h2>
+            <div style="margin-bottom: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px; font-size: 0.9em;">
+                <strong>💡 Dica:</strong> Clique em qualquer ticker para ver informações detalhadas da empresa em:
+                <select id="fonte-info" style="margin-left: 5px; padding: 3px 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 0.9em;">
+                    <option value="statusinvest" selected>Status Invest (Recomendado)</option>
+                    <option value="fundamentus">Fundamentus</option>
+                    <option value="investidor10">Investidor10</option>
+                    <option value="yahoofinance">Yahoo Finance</option>
+                    <option value="b3">B3 Oficial</option>
+                    <option value="google">Google Finance</option>
+                </select>
+            </div>
             <div class="filter-group">
                 <div class="filter-item">
-                    <label>Buscar Ticker:</label>
-                    <input type="text" id="filter-ticker" placeholder="Ex: PETR4, VALE3...">
+                    <label for="filter-ticker">Buscar Ticker:</label>
+                    <input type="text" id="filter-ticker" placeholder="Ex: PETR4, VALE3..." aria-label="Filtrar por ticker">
                 </div>
                 <div class="filter-item">
-                    <label>Setor:</label>
-                    <select id="filter-setor">
+                    <label for="filter-setor">Setor:</label>
+                    <select id="filter-setor" aria-label="Filtrar por setor">
                         <option value="">Todos</option>
                     </select>
                 </div>
                 <div class="filter-item">
-                    <label>Dividend Yield Minimo (%):</label>
-                    <input type="number" id="filter-dy" placeholder="Ex: 5" step="0.1">
+                    <label for="filter-dy">Dividend Yield Mínimo (%):</label>
+                    <input type="number" id="filter-dy" placeholder="Ex: 5" step="0.1" min="0" aria-label="Dividend yield mínimo">
                 </div>
                 <div class="filter-item">
-                    <label>P/L Maximo:</label>
-                    <input type="number" id="filter-pl" placeholder="Ex: 15" step="0.1">
+                    <label for="filter-pl">P/L Máximo:</label>
+                    <input type="number" id="filter-pl" placeholder="Ex: 15" step="0.1" min="0" aria-label="P/L máximo">
                 </div>
             </div>
         </div>
@@ -202,23 +294,26 @@
         <div id="loading" class="loading">Carregando dados...</div>
         
         <div id="results" style="display: none;">
-            <h2>Resultados (<span id="count-results">0</span> acoes)</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Ticker</th>
-                        <th>Nome</th>
-                        <th>Setor</th>
-                        <th>Preco</th>
-                        <th>DY (%)</th>
-                        <th>P/L</th>
-                        <th>Beta</th>
-                        <th>Volume Medio</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                </tbody>
-            </table>
+            <h2>Resultados (<span id="count-results" aria-live="polite">0</span> ações)</h2>
+            <div class="table-wrapper">
+                <table>
+                    <caption style="display: none;">Tabela de ações filtradas com indicadores fundamentalistas</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Ticker</th>
+                            <th scope="col">Nome</th>
+                            <th scope="col">Setor</th>
+                            <th scope="col">Preço</th>
+                            <th scope="col">DY (%)</th>
+                            <th scope="col">P/L</th>
+                            <th scope="col">Beta</th>
+                            <th scope="col">Volume Médio</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     
@@ -227,14 +322,20 @@
         let metadata = {};
         
         // Carregar dados ao iniciar
-        async function carregarDados() {
+        async function carregarDados(retry = 0) {
             try {
+                document.getElementById('loading').textContent = 'Carregando dados...';
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+                
                 // Carregar indicadores
                 const respIndicadores = await fetch('indicadores.json');
+                if (!respIndicadores.ok) throw new Error('Falha ao carregar indicadores');
                 acoesData = await respIndicadores.json();
                 
                 // Carregar metadata
                 const respMetadata = await fetch('metadata.json');
+                if (!respMetadata.ok) throw new Error('Falha ao carregar metadados');
                 metadata = await respMetadata.json();
                 
                 // Atualizar estatisticas
@@ -250,9 +351,24 @@
                 document.getElementById('results').style.display = 'block';
                 
             } catch (error) {
+                console.error('Erro ao carregar dados:', error);
                 document.getElementById('loading').style.display = 'none';
-                document.getElementById('error').style.display = 'block';
-                document.getElementById('error').textContent = 'Erro ao carregar dados: ' + error.message;
+                const errorDiv = document.getElementById('error');
+                errorDiv.style.display = 'block';
+                
+                if (retry < 2) {
+                    errorDiv.innerHTML = `
+                        <strong>Erro ao carregar dados:</strong> ${error.message}<br>
+                        <button onclick="carregarDados(${retry + 1})" style="margin-top: 10px; padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            Tentar Novamente (${3 - retry - 1} tentativas restantes)
+                        </button>
+                    `;
+                } else {
+                    errorDiv.innerHTML = `
+                        <strong>Erro ao carregar dados:</strong> ${error.message}<br>
+                        Por favor, recarregue a página ou tente novamente mais tarde.
+                    `;
+                }
             }
         }
         
@@ -297,8 +413,8 @@
         function aplicarFiltros() {
             const ticker = document.getElementById('filter-ticker').value.toUpperCase();
             const setor = document.getElementById('filter-setor').value;
-            const minDY = parseFloat(document.getElementById('filter-dy').value) || 0;
-            const maxPL = parseFloat(document.getElementById('filter-pl').value) || Infinity;
+            const minDY = parseFloat(document.getElementById('filter-dy').value);
+            const maxPL = parseFloat(document.getElementById('filter-pl').value);
             
             let resultados = acoesData.filter(acao => {
                 // Filtro de ticker
@@ -307,13 +423,17 @@
                 // Filtro de setor
                 if (setor && acao.setor !== setor) return false;
                 
-                // Filtro de DY
-                const dy = (acao.dividend_yield || 0) * 100;
-                if (dy < minDY) return false;
+                // Filtro de DY (apenas quando especificado)
+                if (!isNaN(minDY)) {
+                    const dy = (acao.dividend_yield || 0) * 100;
+                    if (dy < minDY) return false;
+                }
                 
-                // Filtro de P/L
-                const pl = acao.preco_lucro_pl || 0;
-                if (pl > maxPL || pl <= 0) return false;
+                // Filtro de P/L (apenas quando especificado, mantém N/D)
+                if (!isNaN(maxPL)) {
+                    const pl = acao.preco_lucro_pl;
+                    if (pl == null || pl <= 0 || pl > maxPL) return false;
+                }
                 
                 return true;
             });
@@ -333,16 +453,50 @@
             acoes.forEach(acao => {
                 const row = tbody.insertRow();
                 
-                row.innerHTML = `
-                    <td class="ticker">${acao.ticker}</td>
-                    <td>${acao.nome_curto || '-'}</td>
-                    <td>${acao.setor || '-'}</td>
-                    <td>R$ ${(acao.preco_atual || 0).toFixed(2)}</td>
-                    <td>${((acao.dividend_yield || 0) * 100).toFixed(2)}%</td>
-                    <td>${(acao.preco_lucro_pl || 0).toFixed(2)}</td>
-                    <td>${(acao.beta || 0).toFixed(2)}</td>
-                    <td>${formatarNumero(acao.volume_medio || 0)}</td>
-                `;
+                // Criar células usando textContent para segurança
+                const cellTicker = row.insertCell();
+                cellTicker.className = 'ticker';
+                
+                // Criar link clicável para o ticker
+                const tickerLink = document.createElement('a');
+                tickerLink.className = 'ticker-link';
+                tickerLink.href = getTickerInfoUrl(acao.ticker);
+                tickerLink.target = '_blank';
+                tickerLink.rel = 'noopener noreferrer';
+                tickerLink.textContent = acao.ticker;
+                tickerLink.title = `Ver informações detalhadas de ${acao.ticker}`;
+                cellTicker.appendChild(tickerLink);
+                
+                const cellNome = row.insertCell();
+                cellNome.textContent = acao.nome_curto || 'N/D';
+                
+                const cellSetor = row.insertCell();
+                cellSetor.textContent = acao.setor || 'N/D';
+                
+                const cellPreco = row.insertCell();
+                cellPreco.textContent = acao.preco_atual 
+                    ? `R$ ${acao.preco_atual.toFixed(2)}` 
+                    : 'N/D';
+                
+                const cellDY = row.insertCell();
+                cellDY.textContent = acao.dividend_yield != null
+                    ? `${(acao.dividend_yield * 100).toFixed(2)}%`
+                    : 'N/D';
+                
+                const cellPL = row.insertCell();
+                cellPL.textContent = acao.preco_lucro_pl && acao.preco_lucro_pl > 0
+                    ? acao.preco_lucro_pl.toFixed(2)
+                    : 'N/D';
+                
+                const cellBeta = row.insertCell();
+                cellBeta.textContent = acao.beta != null
+                    ? acao.beta.toFixed(2)
+                    : 'N/D';
+                
+                const cellVolume = row.insertCell();
+                cellVolume.textContent = acao.volume_medio
+                    ? formatarNumero(acao.volume_medio)
+                    : 'N/D';
             });
         }
         
@@ -353,6 +507,23 @@
                 return (num / 1000).toFixed(1) + 'K';
             }
             return num.toFixed(0);
+        }
+        
+        // Gerar URL para informacoes do ticker
+        function getTickerInfoUrl(ticker) {
+            const fonte = document.getElementById('fonte-info').value;
+            const tickerLimpo = ticker.replace('.SA', '');
+            
+            const urls = {
+                'statusinvest': `https://statusinvest.com.br/acoes/${tickerLimpo.toLowerCase()}`,
+                'fundamentus': `https://www.fundamentus.com.br/detalhes.php?papel=${tickerLimpo}`,
+                'investidor10': `https://investidor10.com.br/acoes/${tickerLimpo.toLowerCase()}`,
+                'yahoofinance': `https://finance.yahoo.com/quote/${tickerLimpo}.SA`,
+                'b3': `https://www.b3.com.br/pt_br/produtos-e-servicos/negociacao/renda-variavel/empresas-listadas.htm?codigo=${tickerLimpo}`,
+                'google': `https://www.google.com/finance/quote/${tickerLimpo}:BVMF`
+            };
+            
+            return urls[fonte] || urls['statusinvest'];
         }
         
         // Adicionar eventos aos filtros
