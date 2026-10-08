@@ -1,718 +1,893 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InvestFacil - Analisador de Ações B3</title>
-    <meta name="description" content="Analisador gratuito de ações da B3. Filtre por dividend yield, P/L e outros indicadores fundamentalistas.">
-    <meta name="robots" content="index, follow">
-    
-    <!-- SheetJS para exportação Excel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGvBylk90+2e/ycr+equG6tI3L3w7nWZkrPWkcSqnCmVh4dG1A7BnT7y1p4p8dJ9U8Q9KqK3gj3j1rQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 40px;
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
-        
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.1em;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        
-        .stat-card h3 {
-            font-size: 2em;
-            margin-bottom: 5px;
-        }
-        
-        .stat-card p {
-            opacity: 0.9;
-        }
-        
-        .filters {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }
-        
-        .filter-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-        }
-        
-        .filter-item label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .filter-item input, .filter-item select {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 1em;
-        }
-        
-        .filter-item input:focus, .filter-item select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        
-        th {
-            background: #667eea;
-            color: white;
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-        }
-        
-        td {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        tr:hover {
-            background: #f8f9fa;
-        }
-        
-        .positive {
-            color: #28a745;
-            font-weight: 600;
-        }
-        
-        .negative {
-            color: #dc3545;
-            font-weight: 600;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        
-        .ticker {
-            font-weight: bold;
-            color: #4c51bf;
-        }
-        
-        .ticker-link {
-            font-weight: bold;
-            color: #4c51bf;
-            text-decoration: none;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .ticker-link:hover {
-            color: #667eea;
-            text-decoration: underline;
-        }
-        
-        .ticker-link:visited {
-            color: #5a4db5;
-        }
-        
-        .table-wrapper {
-            overflow-x: auto;
-            margin-top: 20px;
-        }
-        
-        .disclaimer {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            font-size: 0.95em;
-        }
-        
-        .disclaimer strong {
-            display: block;
-            margin-bottom: 5px;
-            color: #856404;
-        }
-        
-        .info-note {
-            background: #d1ecf1;
-            border-left: 4px solid: #0c5460;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            font-size: 0.9em;
-            color: #0c5460;
-        }
-        
-        button {
-            transition: all 0.2s;
-        }
-        
-        button:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        
-        button:active {
-            transform: translateY(0);
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-            }
-            
-            h1 {
-                font-size: 1.8em;
-            }
-            
-            .stat-card h3 {
-                font-size: 1.5em;
-            }
-            
-            table {
-                font-size: 0.9em;
-            }
-            
-            th, td {
-                padding: 10px 8px;
-            }
-            
-            #results > div:first-child {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            #results > div:first-child > div {
-                display: flex;
-                gap: 10px;
-                width: 100%;
-            }
-            
-            #results button {
-                flex: 1;
-                padding: 8px 12px;
-                font-size: 0.9em;
-            }
-        }
-    </style>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>InvestFacil - Analisador de Ações B3</title>
+ <meta name="description" content="Analisador gratuito de ações da B3. Filtre por dividend yield, P/L e outros indicadores fundamentalistas.">
+ <meta name="robots" content="index, follow">
+ 
+ <!-- SheetJS para exportação Excel -->
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" ></script>
+ 
+ <style>
+ * {
+ margin: 0;
+ padding: 0;
+ box-sizing: border-box;
+ }
+ 
+ body {
+ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+ min-height: 100vh;
+ padding: 20px;
+ }
+ 
+ .container {
+ max-width: 1200px;
+ margin: 0 auto;
+ background: white;
+ border-radius: 20px;
+ box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+ padding: 40px;
+ }
+ 
+ h1 {
+ color: #333;
+ margin-bottom: 10px;
+ font-size: 2.5em;
+ }
+ 
+ .subtitle {
+ color: #666;
+ margin-bottom: 30px;
+ font-size: 1.1em;
+ }
+ 
+ .stats {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+ gap: 20px;
+ margin-bottom: 30px;
+ }
+ 
+ .stat-card {
+ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+ color: white;
+ padding: 20px;
+ border-radius: 10px;
+ text-align: center;
+ }
+ 
+ .stat-card h3 {
+ font-size: 2em;
+ margin-bottom: 5px;
+ }
+ 
+ .stat-card p {
+ opacity: 0.9;
+ }
+ 
+ .filters {
+ background: #f8f9fa;
+ padding: 20px;
+ border-radius: 10px;
+ margin-bottom: 30px;
+ }
+ 
+ .filter-group {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+ gap: 15px;
+ }
+ 
+ .filter-item label {
+ display: block;
+ margin-bottom: 5px;
+ font-weight: 600;
+ color: #333;
+ }
+ 
+ .filter-item input, .filter-item select {
+ width: 100%;
+ padding: 10px;
+ border: 2px solid #ddd;
+ border-radius: 5px;
+ font-size: 1em;
+ }
+ 
+ .filter-item input:focus, .filter-item select:focus {
+ outline: none;
+ border-color: #667eea;
+ }
+ 
+ table {
+ width: 100%;
+ border-collapse: collapse;
+ margin-top: 20px;
+ }
+ 
+ th {
+ background: #667eea;
+ color: white;
+ padding: 15px;
+ text-align: left;
+ font-weight: 600;
+ }
+ 
+ td {
+ padding: 15px;
+ border-bottom: 1px solid #eee;
+ }
+ 
+ tr:hover {
+ background: #f8f9fa;
+ }
+ 
+ .positive {
+ color: #28a745;
+ font-weight: 600;
+ }
+ 
+ .negative {
+ color: #dc3545;
+ font-weight: 600;
+ }
+ 
+ .loading {
+ text-align: center;
+ padding: 40px;
+ color: #666;
+ }
+ 
+ .error {
+ background: #f8d7da;
+ color: #721c24;
+ padding: 15px;
+ border-radius: 5px;
+ margin-bottom: 20px;
+ }
+ 
+ .ticker {
+ font-weight: bold;
+ color: #4c51bf;
+ }
+ 
+ .ticker-link {
+ font-weight: bold;
+ color: #4c51bf;
+ text-decoration: none;
+ cursor: pointer;
+ transition: all 0.2s;
+ }
+ 
+ .ticker-link:hover {
+ color: #667eea;
+ text-decoration: underline;
+ }
+ 
+ .ticker-link:visited {
+ color: #5a4db5;
+ }
+ 
+ .table-wrapper {
+ overflow-x: auto;
+ margin-top: 20px;
+ }
+ 
+ .disclaimer {
+ background: #fff3cd;
+ border-left: 4px solid #ffc107;
+ padding: 15px 20px;
+ margin-bottom: 20px;
+ border-radius: 5px;
+ font-size: 0.95em;
+ }
+ 
+ .disclaimer strong {
+ display: block;
+ margin-bottom: 5px;
+ color: #856404;
+ }
+ 
+ .info-note {
+ background: #d1ecf1;
+ border-left: 4px solid: #0c5460;
+ padding: 12px 15px;
+ margin-bottom: 20px;
+ border-radius: 5px;
+ font-size: 0.9em;
+ color: #0c5460;
+ }
+ 
+ button {
+ transition: all 0.2s;
+ }
+ 
+ button:hover {
+ opacity: 0.9;
+ transform: translateY(-2px);
+ box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+ }
+ 
+ button:active {
+ transform: translateY(0);
+ }
+ 
+ @media (max-width: 768px) {
+ .container {
+ padding: 20px;
+ }
+ 
+ h1 {
+ font-size: 1.8em;
+ }
+ 
+ .stat-card h3 {
+ font-size: 1.5em;
+ }
+ 
+ table {
+ font-size: 0.9em;
+ }
+ 
+ th, td {
+ padding: 10px 8px;
+ }
+ 
+ #results > div:first-child {
+ flex-direction: column;
+ gap: 10px;
+ }
+ 
+ #results > div:first-child > div {
+ display: flex;
+ gap: 10px;
+ width: 100%;
+ }
+ 
+ #results button {
+ flex: 1;
+ padding: 8px 12px;
+ font-size: 0.9em;
+ }
+ }
+ </style>
 </head>
 <body>
-    <div class="container">
-        <h1>InvestFacil</h1>
-        <p class="subtitle">Analisador de Ações da B3 - Escolha seus próprios critérios</p>
-        
-        <div class="disclaimer">
-            <strong>⚠️ Aviso Importante:</strong>
-            Este site é apenas para fins educacionais e informativos. Não constitui consultoria financeira ou recomendação de investimento. Sempre consulte um profissional qualificado antes de tomar decisões de investimento.
-        </div>
-        
-        <div class="info-note">
-            <strong>📊 Sobre os Dados:</strong>
-            Cobertura: 50 principais ações do Ibovespa | Fonte: Yahoo Finance via Databricks | Atualização: Diária | Possível atraso: 15-20 minutos | Valores "N/D" indicam dados indisponíveis na fonte.
-        </div>
-        
-        <div id="error" class="error" style="display: none;"></div>
-        
-        <div class="stats">
-            <div class="stat-card">
-                <h3 id="total-acoes">-</h3>
-                <p>Total de Acoes</p>
-            </div>
-            <div class="stat-card">
-                <h3 id="media-dy">-</h3>
-                <p>Dividend Yield Medio</p>
-            </div>
-            <div class="stat-card">
-                <h3 id="media-pl">-</h3>
-                <p>P/L Medio</p>
-            </div>
-            <div class="stat-card">
-                <h3 id="ultima-atualizacao">-</h3>
-                <p>Ultima Atualizacao</p>
-            </div>
-        </div>
-        
-        <div class="filters">
-            <h2 style="margin-bottom: 15px;">Filtros e Configurações</h2>
-            <div style="margin-bottom: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px; font-size: 0.9em;">
-                <strong>💡 Dica:</strong> Clique em qualquer ticker para ver informações detalhadas da empresa em:
-                <select id="fonte-info" style="margin-left: 5px; padding: 3px 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 0.9em;">
-                    <option value="statusinvest" selected>Status Invest (Recomendado)</option>
-                    <option value="fundamentus">Fundamentus</option>
-                    <option value="investidor10">Investidor10</option>
-                    <option value="yahoofinance">Yahoo Finance</option>
-                    <option value="b3">B3 Oficial</option>
-                    <option value="google">Google Finance</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <div class="filter-item">
-                    <label for="filter-ticker">Buscar Ticker:</label>
-                    <input type="text" id="filter-ticker" placeholder="Ex: PETR4, VALE3..." aria-label="Filtrar por ticker">
-                </div>
-                <div class="filter-item">
-                    <label for="filter-setor">Setor:</label>
-                    <select id="filter-setor" aria-label="Filtrar por setor">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                <div class="filter-item">
-                    <label for="filter-dy">Dividend Yield Mínimo (%):</label>
-                    <input type="number" id="filter-dy" placeholder="Ex: 5" step="0.1" min="0" aria-label="Dividend yield mínimo">
-                </div>
-                <div class="filter-item">
-                    <label for="filter-pl">P/L Máximo:</label>
-                    <input type="number" id="filter-pl" placeholder="Ex: 15" step="0.1" min="0" aria-label="P/L máximo">
-                </div>
-            </div>
-        </div>
-        
-        <div id="loading" class="loading">Carregando dados...</div>
-        
-        <div id="results" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 style="margin: 0;">Resultados (<span id="count-results" aria-live="polite">0</span> ações)</h2>
-                <div>
-                    <button id="btn-export-excel" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600;">
-                        📈 Exportar Excel
-                    </button>
-                    <button id="btn-export-csv" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600;">
-                        📄 Exportar CSV
-                    </button>
-                    <button id="btn-export-json" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
-                        📊 Exportar JSON
-                    </button>
-                </div>
-            </div>
-            <div class="table-wrapper">
-                <table>
-                    <caption style="display: none;">Tabela de ações filtradas com indicadores fundamentalistas</caption>
-                    <thead>
-                        <tr>
-                            <th scope="col">Ticker</th>
-                            <th scope="col">Nome</th>
-                            <th scope="col">Setor</th>
-                            <th scope="col">Preço</th>
-                            <th scope="col">DY (%)</th>
-                            <th scope="col">P/L</th>
-                            <th scope="col">Beta</th>
-                            <th scope="col">Volume Médio</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        let acoesData = [];
-        let metadata = {};
-        
-        // Carregar dados ao iniciar
-        async function carregarDados(retry = 0) {
-            try {
-                document.getElementById('loading').textContent = 'Carregando dados...';
-                document.getElementById('loading').style.display = 'block';
-                document.getElementById('error').style.display = 'none';
-                
-                // Carregar indicadores
-                const respIndicadores = await fetch('indicadores.json');
-                if (!respIndicadores.ok) throw new Error('Falha ao carregar indicadores');
-                acoesData = await respIndicadores.json();
-                
-                // Carregar metadata
-                const respMetadata = await fetch('metadata.json');
-                if (!respMetadata.ok) throw new Error('Falha ao carregar metadados');
-                metadata = await respMetadata.json();
-                
-                // Atualizar estatisticas
-                atualizarEstatisticas();
-                
-                // Popular filtro de setores
-                popularSetores();
-                
-                // Mostrar resultados
-                aplicarFiltros();
-                
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('results').style.display = 'block';
-                
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-                document.getElementById('loading').style.display = 'none';
-                const errorDiv = document.getElementById('error');
-                errorDiv.style.display = 'block';
-                
-                if (retry < 2) {
-                    errorDiv.innerHTML = `
-                        <strong>Erro ao carregar dados:</strong> ${error.message}<br>
-                        <button onclick="carregarDados(${retry + 1})" style="margin-top: 10px; padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                            Tentar Novamente (${3 - retry - 1} tentativas restantes)
-                        </button>
-                    `;
-                } else {
-                    errorDiv.innerHTML = `
-                        <strong>Erro ao carregar dados:</strong> ${error.message}<br>
-                        Por favor, recarregue a página ou tente novamente mais tarde.
-                    `;
-                }
-            }
-        }
-        
-        function atualizarEstatisticas() {
-            document.getElementById('total-acoes').textContent = acoesData.length;
-            
-            // Calcular media de DY
-            const acoesComDY = acoesData.filter(a => a.dividend_yield && a.dividend_yield > 0);
-            const mediaDY = acoesComDY.length > 0 
-                ? (acoesComDY.reduce((sum, a) => sum + a.dividend_yield, 0) / acoesComDY.length * 100).toFixed(2) 
-                : '0.00';
-            document.getElementById('media-dy').textContent = mediaDY + '%';
-            
-            // Calcular media de P/L
-            const acoesComPL = acoesData.filter(a => a.preco_lucro_pl && a.preco_lucro_pl > 0);
-            const mediaPL = acoesComPL.length > 0 
-                ? (acoesComPL.reduce((sum, a) => sum + a.preco_lucro_pl, 0) / acoesComPL.length).toFixed(2) 
-                : '0.00';
-            document.getElementById('media-pl').textContent = mediaPL;
-            
-            // Data de atualizacao
-            if (metadata.ultima_atualizacao) {
-                const data = new Date(metadata.ultima_atualizacao);
-                document.getElementById('ultima-atualizacao').textContent = 
-                    data.toLocaleDateString('pt-BR');
-            }
-        }
-        
-        function popularSetores() {
-            const setores = [...new Set(acoesData.map(a => a.setor).filter(s => s))];
-            setores.sort();
-            
-            const select = document.getElementById('filter-setor');
-            setores.forEach(setor => {
-                const option = document.createElement('option');
-                option.value = setor;
-                option.textContent = setor;
-                select.appendChild(option);
-            });
-        }
-        
-        function aplicarFiltros() {
-            const ticker = document.getElementById('filter-ticker').value.toUpperCase();
-            const setor = document.getElementById('filter-setor').value;
-            const minDY = parseFloat(document.getElementById('filter-dy').value);
-            const maxPL = parseFloat(document.getElementById('filter-pl').value);
-            
-            let resultados = acoesData.filter(acao => {
-                // Filtro de ticker
-                if (ticker && !acao.ticker.includes(ticker)) return false;
-                
-                // Filtro de setor
-                if (setor && acao.setor !== setor) return false;
-                
-                // Filtro de DY (apenas quando especificado)
-                if (!isNaN(minDY)) {
-                    const dy = (acao.dividend_yield || 0) * 100;
-                    if (dy < minDY) return false;
-                }
-                
-                // Filtro de P/L (apenas quando especificado, mantém N/D)
-                if (!isNaN(maxPL)) {
-                    const pl = acao.preco_lucro_pl;
-                    if (pl == null || pl <= 0 || pl > maxPL) return false;
-                }
-                
-                return true;
-            });
-            
-            // Ordenar por DY decrescente
-            resultados.sort((a, b) => (b.dividend_yield || 0) - (a.dividend_yield || 0));
-            
-            // Salvar resultados para exportação
-            acoesFiltradasGlobal = resultados;
-            
-            exibirResultados(resultados);
-        }
-        
-        function exibirResultados(acoes) {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
-            
-            document.getElementById('count-results').textContent = acoes.length;
-            
-            acoes.forEach(acao => {
-                const row = tbody.insertRow();
-                
-                // Criar células usando textContent para segurança
-                const cellTicker = row.insertCell();
-                cellTicker.className = 'ticker';
-                
-                // Criar link clicável para o ticker
-                const tickerLink = document.createElement('a');
-                tickerLink.className = 'ticker-link';
-                tickerLink.href = getTickerInfoUrl(acao.ticker);
-                tickerLink.target = '_blank';
-                tickerLink.rel = 'noopener noreferrer';
-                tickerLink.textContent = acao.ticker;
-                tickerLink.title = `Ver informações detalhadas de ${acao.ticker}`;
-                cellTicker.appendChild(tickerLink);
-                
-                const cellNome = row.insertCell();
-                cellNome.textContent = acao.nome_curto || 'N/D';
-                
-                const cellSetor = row.insertCell();
-                cellSetor.textContent = acao.setor || 'N/D';
-                
-                const cellPreco = row.insertCell();
-                cellPreco.textContent = acao.preco_atual 
-                    ? `R$ ${acao.preco_atual.toFixed(2)}` 
-                    : 'N/D';
-                
-                const cellDY = row.insertCell();
-                cellDY.textContent = acao.dividend_yield != null
-                    ? `${(acao.dividend_yield * 100).toFixed(2)}%`
-                    : 'N/D';
-                
-                const cellPL = row.insertCell();
-                cellPL.textContent = acao.preco_lucro_pl && acao.preco_lucro_pl > 0
-                    ? acao.preco_lucro_pl.toFixed(2)
-                    : 'N/D';
-                
-                const cellBeta = row.insertCell();
-                cellBeta.textContent = acao.beta != null
-                    ? acao.beta.toFixed(2)
-                    : 'N/D';
-                
-                const cellVolume = row.insertCell();
-                cellVolume.textContent = acao.volume_medio
-                    ? formatarNumero(acao.volume_medio)
-                    : 'N/D';
-            });
-        }
-        
-        function formatarNumero(num) {
-            if (num >= 1000000) {
-                return (num / 1000000).toFixed(1) + 'M';
-            } else if (num >= 1000) {
-                return (num / 1000).toFixed(1) + 'K';
-            }
-            return num.toFixed(0);
-        }
-        
-        // Gerar URL para informacoes do ticker
-        function getTickerInfoUrl(ticker) {
-            const fonte = document.getElementById('fonte-info').value;
-            const tickerLimpo = ticker.replace('.SA', '');
-            
-            const urls = {
-                'statusinvest': `https://statusinvest.com.br/acoes/${tickerLimpo.toLowerCase()}`,
-                'fundamentus': `https://www.fundamentus.com.br/detalhes.php?papel=${tickerLimpo}`,
-                'investidor10': `https://investidor10.com.br/acoes/${tickerLimpo.toLowerCase()}`,
-                'yahoofinance': `https://finance.yahoo.com/quote/${tickerLimpo}.SA`,
-                'b3': `https://www.b3.com.br/pt_br/produtos-e-servicos/negociacao/renda-variavel/empresas-listadas.htm?codigo=${tickerLimpo}`,
-                'google': `https://www.google.com/finance/quote/${tickerLimpo}:BVMF`
-            };
-            
-            return urls[fonte] || urls['statusinvest'];
-        }
-        
-        // Variavel global para armazenar acoes filtradas
-        let acoesFiltradasGlobal = [];
-        
-        // Funcao para exportar Excel (XLSX)
-        function exportarExcel() {
-            // Verificar se XLSX está carregado
-            if (typeof XLSX === 'undefined') {
-                alert('❌ Erro: Biblioteca SheetJS não carregada. Verifique sua conexão com a internet e recarregue a página.');
-                console.error('XLSX library not loaded');
-                return;
-            }
-            
-            if (acoesFiltradasGlobal.length === 0) {
-                alert('⚠️ Nenhuma ação para exportar. Ajuste os filtros.');
-                return;
-            }
-            
-            try {
-                // Preparar dados para o Excel
-            const dados = acoesFiltradasGlobal.map(acao => ({
-                'Ticker': acao.ticker,
-                'Nome': acao.nome_completo || acao.nome_curto || 'N/D',
-                'Setor': acao.setor || 'N/D',
-                'Preço (R$)': acao.preco_atual != null ? acao.preco_atual : 'N/D',
-                'Dividend Yield (%)': acao.dividend_yield != null ? (acao.dividend_yield * 100).toFixed(2) : 'N/D',
-                'P/L': acao.preco_lucro_pl && acao.preco_lucro_pl > 0 ? acao.preco_lucro_pl.toFixed(2) : 'N/D',
-                'Beta': acao.beta != null ? acao.beta : 'N/D',
-                'Volume Médio': acao.volume_medio || 'N/D',
-                'Variação (%)': acao.variacao_dia != null ? acao.variacao_dia : 'N/D',
-                'Máxima 52sem': acao.maxima_52_semanas != null ? acao.maxima_52_semanas : 'N/D',
-                'Mínima 52sem': acao.minima_52_semanas != null ? acao.minima_52_semanas : 'N/D'
-            }));
-            
-            // Criar workbook e worksheet
-            const ws = XLSX.utils.json_to_sheet(dados);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Ações');
-            
-            // Adicionar largura das colunas
-            ws['!cols'] = [
-                {wch: 10},  // Ticker
-                {wch: 35},  // Nome
-                {wch: 25},  // Setor
-                {wch: 12},  // Preço
-                {wch: 18},  // DY
-                {wch: 10},  // P/L
-                {wch: 10},  // Beta
-                {wch: 15},  // Volume
-                {wch: 12},  // Variação
-                {wch: 12},  // Máxima 52s
-                {wch: 12}   // Mínima 52s
-            ];
-            
-                // Download
-                const dataHora = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-                XLSX.writeFile(wb, `investfacil_${dataHora}.xlsx`);
-                
-                console.log(`Excel exportado com sucesso: ${acoesFiltradasGlobal.length} ações`);
-            } catch (erro) {
-                console.error('Erro ao exportar Excel:', erro);
-                alert(`❌ Erro ao exportar Excel: ${erro.message}. Tente novamente ou use a exportação CSV.`);
-            }
-        }
-        
-        // Funcao para exportar CSV
-        
-        function exportarCSV() {
-            if (acoesFiltradasGlobal.length === 0) {
-                alert('⚠️ Nenhuma ação para exportar. Ajuste os filtros.');
-                return;
-            }
-            
-            // Cabeçalho do CSV
-            let csv = 'Ticker,Nome,Setor,Preço (R$),Dividend Yield (%),P/L,Beta,Volume Médio\n';
-            
-            // Adicionar linhas
-            acoesFiltradasGlobal.forEach(acao => {
-                csv += `${acao.ticker},`;
-                csv += `"${(acao.nome_completo || acao.nome_curto || 'N/D').replace(/"/g, '""')}",`;
-                csv += `"${(acao.setor || 'N/D').replace(/"/g, '""')}",`;
-                csv += `${acao.preco_atual != null ? acao.preco_atual.toFixed(2) : 'N/D'},`;
-                csv += `${acao.dividend_yield != null ? (acao.dividend_yield * 100).toFixed(2) : 'N/D'},`;
-                csv += `${acao.preco_lucro_pl && acao.preco_lucro_pl > 0 ? acao.preco_lucro_pl.toFixed(2) : 'N/D'},`;
-                csv += `${acao.beta != null ? acao.beta.toFixed(2) : 'N/D'},`;
-                csv += `${acao.volume_medio || 'N/D'}\n`;
-            });
-            
-            // Download
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            const dataHora = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `investfacil_${dataHora}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-        
-        // Funcao para exportar JSON
-        function exportarJSON() {
-            if (acoesFiltradasGlobal.length === 0) {
-                alert('⚠️ Nenhuma ação para exportar. Ajuste os filtros.');
-                return;
-            }
-            
-            const json = JSON.stringify(acoesFiltradasGlobal, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            const dataHora = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `investfacil_${dataHora}.json`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-        
-        // Adicionar eventos aos filtros
-        document.getElementById('filter-ticker').addEventListener('input', aplicarFiltros);
-        document.getElementById('filter-setor').addEventListener('change', aplicarFiltros);
-        document.getElementById('filter-dy').addEventListener('input', aplicarFiltros);
-        document.getElementById('filter-pl').addEventListener('input', aplicarFiltros);
-        
-        // Atualizar links dos tickers quando trocar a fonte
-        document.getElementById('fonte-info').addEventListener('change', aplicarFiltros);
-        
-        // Eventos de exportação
-        document.getElementById('btn-export-excel').addEventListener('click', exportarExcel);
-        document.getElementById('btn-export-csv').addEventListener('click', exportarCSV);
-        document.getElementById('btn-export-json').addEventListener('click', exportarJSON);
-        
-        // Iniciar aplicacao
-        carregarDados();
-    </script>
+ <div class="container">
+ <h1>InvestFacil</h1>
+ <p class="subtitle">Analisador de Ações da B3 - Escolha seus próprios critérios</p>
+ 
+ <div class="disclaimer">
+ <strong> Aviso Importante:</strong>
+ Este site é apenas para fins educacionais e informativos. Não constitui consultoria financeira ou recomendação de investimento. Sempre consulte um profissional qualificado antes de tomar decisões de investimento.
+ </div>
+ 
+ <div class="info-note">
+ <strong> Sobre os Dados:</strong>
+ Cobertura: 50 principais ações do Ibovespa | Fonte: Yahoo Finance via Databricks | Atualização: Diária | Possível atraso: 15-20 minutos | Valores "N/D" indicam dados indisponíveis na fonte.
+ </div>
+ 
+ <div id="error" class="error" style="display: none;"></div>
+ 
+ <div class="stats">
+ <div class="stat-card">
+ <h3 id="total-acoes">-</h3>
+ <p>Total de Acoes</p>
+ </div>
+ <div class="stat-card">
+ <h3 id="media-dy">-</h3>
+ <p>Dividend Yield Medio</p>
+ </div>
+ <div class="stat-card">
+ <h3 id="media-pl">-</h3>
+ <p>P/L Medio</p>
+ </div>
+ <div class="stat-card">
+ <h3 id="ultima-atualizacao">-</h3>
+ <p>Ultima Atualizacao</p>
+ </div>
+ </div>
+ 
+ <div class="filters">
+ <h2 style="margin-bottom: 15px;">Filtros e Configurações</h2>
+ <div style="margin-bottom: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px; font-size: 0.9em;">
+ <strong> Dica:</strong> Clique em qualquer ticker para ver informações detalhadas da empresa em:
+ <select id="fonte-info" style="margin-left: 5px; padding: 3px 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 0.9em;">
+ <option value="statusinvest" selected>Status Invest (Recomendado)</option>
+ <option value="fundamentus">Fundamentus</option>
+ <option value="investidor10">Investidor10</option>
+ <option value="yahoofinance">Yahoo Finance</option>
+ <option value="b3">B3 Oficial</option>
+ <option value="google">Google Finance</option>
+ </select>
+ <button id="btn-ir-site" onclick="abrirSiteFonte()" style="margin-left: 5px; padding: 4px 12px; background: #667eea; color: white; border: none; border-radius: 3px; font-size: 0.9em; cursor: pointer;">Ir para o site ↗</button>
+  </div>
+ <div class="filter-group">
+ <div class="filter-item" style="position: relative;">
+ <label for="filter-ticker">Buscar Ticker:</label>
+ <input type="text" id="filter-ticker" placeholder="Ex: PETR4, petro, vale..." aria-label="Filtrar por ticker" autocomplete="off">
+  <div id="ticker-suggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 5px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); max-height: 200px; overflow-y: auto; z-index: 1000;"></div>
+ </div>
+ <div class="filter-item">
+ <label for="filter-setor">Setor:</label>
+ <select id="filter-setor" aria-label="Filtrar por setor">
+ <option value="">Todos</option>
+ </select>
+ </div>
+ <div class="filter-item">
+ <label for="filter-dy">Dividend Yield Mínimo (%):</label>
+ <input type="number" id="filter-dy" placeholder="Ex: 5,00" step="0.01" min="0" lang="pt-BR" aria-label="Dividend yield mínimo">
+ </div>
+ <div class="filter-item">
+ <label for="filter-pl">P/L Máximo:</label>
+ <input type="number" id="filter-pl" placeholder="Ex: 15" step="1" min="0" lang="pt-BR" aria-label="P/L máximo">
+ </div>
+ </div>
+ <div style="margin-top: 15px; text-align: right;">
+  <button id="btn-limpar" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600;">Limpar Filtros</button>
+  <button id="btn-buscar" style="padding: 10px 30px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">Buscar</button>
+  </div>
+  </div>
+ 
+ <div id="loading" class="loading">Carregando dados...</div>
+ 
+ <div id="results" style="display: none;">
+ <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+ <h2 style="margin: 0;">Resultados (<span id="count-results" aria-live="polite">0</span> ações)</h2>
+ <div>
+ <button id="btn-export-excel" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600;">
+ Exportar Excel
+ </button>
+ <button id="btn-export-csv" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600;">
+ Exportar CSV
+ </button>
+ <button id="btn-export-json" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
+ Exportar JSON
+ </button>
+ </div>
+ </div>
+ <div class="table-wrapper">
+ <table>
+ <caption style="display: none;">Tabela de ações filtradas com indicadores fundamentalistas</caption>
+ <thead>
+ <tr>
+ <th scope="col">Ticker</th>
+ <th scope="col">Nome</th>
+ <th scope="col">Setor</th>
+ <th scope="col">Preço</th>
+ <th scope="col">DY (%)</th>
+ <th scope="col">P/L</th>
+ <th scope="col">Beta</th>
+ <th scope="col">Volume Médio</th>
+ </tr>
+ </thead>
+ <tbody id="table-body">
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </div>
+ 
+ <script>
+ let acoesData = [];
+ let metadata = {};
+ 
+ // Carregar dados ao iniciar
+ async function carregarDados(retry = 0) {
+ try {
+ document.getElementById('loading').textContent = 'Carregando dados...';
+ document.getElementById('loading').style.display = 'block';
+ document.getElementById('error').style.display = 'none';
+ 
+ // Carregar indicadores
+ const respIndicadores = await fetch('indicadores.json');
+ if (!respIndicadores.ok) throw new Error('Falha ao carregar indicadores');
+ acoesData = await respIndicadores.json();
+ 
+ // Carregar metadata
+ const respMetadata = await fetch('metadata.json');
+ if (!respMetadata.ok) throw new Error('Falha ao carregar metadados');
+ metadata = await respMetadata.json();
+ 
+ // Atualizar estatisticas
+ atualizarEstatisticas();
+ 
+ // Popular filtro de setores
+ popularSetores();
+ 
+ // Mostrar resultados
+ aplicarFiltros();
+ 
+ document.getElementById('loading').style.display = 'none';
+ document.getElementById('results').style.display = 'block';
+ 
+ } catch (error) {
+ console.error('Erro ao carregar dados:', error);
+ document.getElementById('loading').style.display = 'none';
+ const errorDiv = document.getElementById('error');
+ errorDiv.style.display = 'block';
+ 
+ if (retry < 2) {
+ errorDiv.innerHTML = `
+ <strong>Erro ao carregar dados:</strong> ${error.message}<br>
+ <button onclick="carregarDados(${retry + 1})" style="margin-top: 10px; padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">
+ Tentar Novamente (${3 - retry - 1} tentativas restantes)
+ </button>
+ `;
+ } else {
+ errorDiv.innerHTML = `
+ <strong>Erro ao carregar dados:</strong> ${error.message}<br>
+ Por favor, recarregue a página ou tente novamente mais tarde.
+ `;
+ }
+ }
+ }
+ 
+ function atualizarEstatisticas() {
+ document.getElementById('total-acoes').textContent = acoesData.length;
+ 
+ // Calcular media de DY
+ const acoesComDY = acoesData.filter(a => a.dividend_yield && a.dividend_yield > 0);
+ const mediaDY = acoesComDY.length > 0 
+ ? (acoesComDY.reduce((sum, a) => sum + a.dividend_yield, 0) / acoesComDY.length).toFixed(2) 
+ : '0.00';
+ document.getElementById('media-dy').textContent = mediaDY + '%';
+ 
+ // Calcular media de P/L
+ const acoesComPL = acoesData.filter(a => a.preco_lucro_pl && a.preco_lucro_pl > 0);
+ const mediaPL = acoesComPL.length > 0 
+ ? (acoesComPL.reduce((sum, a) => sum + a.preco_lucro_pl, 0) / acoesComPL.length).toFixed(2) 
+ : '0.00';
+ document.getElementById('media-pl').textContent = mediaPL;
+ 
+ // Data de atualizacao
+ if (metadata.ultima_atualizacao) {
+ const data = new Date(metadata.ultima_atualizacao);
+ document.getElementById('ultima-atualizacao').textContent = 
+ data.toLocaleDateString('pt-BR');
+ }
+ }
+ 
+ function popularSetores() {
+ const setores = [...new Set(acoesData.map(a => a.setor).filter(s => s))];
+ setores.sort();
+ 
+ const select = document.getElementById('filter-setor');
+ setores.forEach(setor => {
+ const option = document.createElement('option');
+ option.value = setor;
+ option.textContent = setor;
+ select.appendChild(option);
+ });
+ }
+ 
+ function aplicarFiltros() {
+ const ticker = document.getElementById('filter-ticker').value.toUpperCase();
+ const setor = document.getElementById('filter-setor').value;
+ const minDY = parseFloat(document.getElementById('filter-dy').value);
+ const maxPL = parseFloat(document.getElementById('filter-pl').value);
+ 
+ let resultados = acoesData.filter(acao => {
+ // Filtro de ticker
+ if (ticker && !acao.ticker.includes(ticker)) return false;
+ 
+ // Filtro de setor
+ if (setor && acao.setor !== setor) return false;
+ 
+ // Filtro de DY (apenas quando especificado)
+ if (!isNaN(minDY)) {
+ const dy = (acao.dividend_yield || 0);
+ if (dy < minDY) return false;
+ }
+ 
+ // Filtro de P/L (apenas quando especificado, mantém N/D)
+ if (!isNaN(maxPL)) {
+ const pl = acao.preco_lucro_pl;
+ if (pl == null || pl <= 0 || pl > maxPL) return false;
+ }
+ 
+ return true;
+ });
+ 
+ // Ordenar por DY decrescente
+ resultados.sort((a, b) => (b.dividend_yield || 0) - (a.dividend_yield || 0));
+ 
+ // Salvar resultados para exportação
+ acoesFiltradasGlobal = resultados;
+ 
+ exibirResultados(resultados);
+ }
+ 
+ function exibirResultados(acoes) {
+ const tbody = document.getElementById('table-body');
+ tbody.innerHTML = '';
+ 
+ document.getElementById('count-results').textContent = acoes.length;
+ 
+ acoes.forEach(acao => {
+ const row = tbody.insertRow();
+ 
+ // Criar células usando textContent para segurança
+ const cellTicker = row.insertCell();
+ cellTicker.className = 'ticker';
+ 
+ // Criar link clicável para o ticker
+ const tickerLink = document.createElement('a');
+ tickerLink.className = 'ticker-link';
+ tickerLink.href = getTickerInfoUrl(acao.ticker);
+ tickerLink.target = '_blank';
+ tickerLink.rel = 'noopener noreferrer';
+ tickerLink.textContent = acao.ticker;
+ tickerLink.title = `Ver informações detalhadas de ${acao.ticker}`;
+ cellTicker.appendChild(tickerLink);
+ 
+ const cellNome = row.insertCell();
+ cellNome.textContent = acao.nome_curto || 'N/D';
+ 
+ const cellSetor = row.insertCell();
+ cellSetor.textContent = acao.setor || 'N/D';
+ 
+ const cellPreco = row.insertCell();
+ cellPreco.textContent = acao.preco_atual 
+ ? `R$ ${acao.preco_atual.toFixed(2)}` 
+ : 'N/D';
+ 
+ const cellDY = row.insertCell();
+ cellDY.textContent = acao.dividend_yield != null
+ ? `${acao.dividend_yield.toFixed(2)}%`
+ : 'N/D';
+ 
+ const cellPL = row.insertCell();
+ cellPL.textContent = acao.preco_lucro_pl && acao.preco_lucro_pl > 0
+ ? acao.preco_lucro_pl.toFixed(2)
+ : 'N/D';
+ 
+ const cellBeta = row.insertCell();
+ cellBeta.textContent = acao.beta != null
+ ? acao.beta.toFixed(2)
+ : 'N/D';
+ 
+ const cellVolume = row.insertCell();
+ cellVolume.textContent = acao.volume_medio
+ ? formatarNumero(acao.volume_medio)
+ : 'N/D';
+ });
+ }
+ 
+ function formatarNumero(num) {
+ if (num >= 1000000) {
+ return (num / 1000000).toFixed(1) + 'M';
+ } else if (num >= 1000) {
+ return (num / 1000).toFixed(1) + 'K';
+ }
+ return num.toFixed(0);
+ }
+ 
+ // Gerar URL para informacoes do ticker
+ function getTickerInfoUrl(ticker) {
+ const fonte = document.getElementById('fonte-info').value;
+ const tickerLimpo = ticker.replace('.SA', '');
+ 
+ const urls = {
+ 'statusinvest': `https://statusinvest.com.br/acoes/${tickerLimpo.toLowerCase()}`,
+ 'fundamentus': `https://www.fundamentus.com.br/detalhes.php?papel=${tickerLimpo}`,
+ 'investidor10': `https://investidor10.com.br/acoes/${tickerLimpo.toLowerCase()}`,
+ 'yahoofinance': `https://finance.yahoo.com/quote/${tickerLimpo}.SA`,
+ 'b3': `https://www.b3.com.br/pt_br/produtos-e-servicos/negociacao/renda-variavel/empresas-listadas.htm?codigo=${tickerLimpo}`,
+ 'google': `https://www.google.com/finance/quote/${tickerLimpo}:BVMF`
+ };
+ 
+ return urls[fonte] || urls['statusinvest'];
+ }
+ 
+ // Variavel global para armazenar acoes filtradas
+ let acoesFiltradasGlobal = [];
+ 
+ // Funcao para carregar biblioteca SheetJS dinamicamente
+ async function carregarSheetJS() {
+ console.log('[INFO] Tentando carregar SheetJS dinamicamente...');
+ 
+ // Lista de CDNs alternativos (fallback)
+ const cdnUrls = [
+ 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+ 'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js',
+ 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+ ];
+ 
+ for (let i = 0; i < cdnUrls.length; i++) {
+ try {
+ console.log(`[INFO] Tentando CDN ${i + 1}/${cdnUrls.length}: ${cdnUrls[i]}`);
+ 
+ await new Promise((resolve, reject) => {
+ const script = document.createElement('script');
+ script.src = cdnUrls[i];
+ script.onload = () => {
+ console.log(`[OK] SheetJS carregado com sucesso do CDN ${i + 1}!`);
+ resolve();
+ };
+ script.onerror = () => {
+ console.warn(`[WARN] Falha ao carregar do CDN ${i + 1}`);
+ reject(new Error(`CDN ${i + 1} falhou`));
+ };
+ // Timeout de 5 segundos por CDN
+ setTimeout(() => reject(new Error('Timeout')), 5000);
+ document.head.appendChild(script);
+ });
+ 
+ // Sucesso! SheetJS carregado
+ return true;
+ 
+ } catch (error) {
+ console.warn(`[WARN] CDN ${i + 1} falhou:`, error.message);
+ // Continuar para próximo CDN
+ }
+ }
+ 
+ // Se chegou aqui, todos os CDNs falharam
+ console.error('[ERRO] Todos os CDNs falharam ao carregar SheetJS');
+ return false;
+ }
+ 
+ // Funcao para exportar Excel (XLSX) com carregamento dinâmico
+ async function exportarExcel() {
+ console.log('[INFO] Iniciando exportação Excel...');
+ 
+ // Verificar se há dados para exportar
+ if (acoesFiltradasGlobal.length === 0) {
+ alert(' Nenhuma ação para exportar. Ajuste os filtros.');
+ return;
+ }
+ 
+ // Verificar se XLSX está carregado
+ console.log('[CHECK] Biblioteca XLSX:', typeof XLSX);
+ if (typeof XLSX === 'undefined') {
+ console.warn('[WARN] SheetJS não detectado. Tentando carregar dinamicamente...');
+ 
+ // Mostrar mensagem de carregamento
+ const btnExcel = document.getElementById('btn-export-excel');
+ const textoOriginal = btnExcel.textContent;
+ btnExcel.textContent = '⏳ Carregando biblioteca...';
+ btnExcel.disabled = true;
+ 
+ try {
+ const sucesso = await carregarSheetJS();
+ 
+ if (!sucesso || typeof XLSX === 'undefined') {
+ throw new Error('Não foi possível carregar a biblioteca SheetJS');
+ }
+ 
+ console.log('[OK] SheetJS carregado dinamicamente!');
+ btnExcel.textContent = textoOriginal;
+ btnExcel.disabled = false;
+ 
+ } catch (error) {
+ console.error('[ERRO] Falha ao carregar SheetJS:', error);
+ btnExcel.textContent = textoOriginal;
+ btnExcel.disabled = false;
+ 
+ alert(' Erro: Não foi possível carregar a biblioteca de exportação Excel.\n\n' +
+ 'Possíveis causas:\n' +
+ '• Bloqueador de anúncios ativo\n' +
+ '• Extensão de privacidade bloqueando scripts\n' +
+ '• Firewall corporativo\n' +
+ '• Conexão de internet instável\n\n' +
+ ' Solução: Desative temporariamente bloqueadores ou use a exportação CSV.');
+ return;
+ }
+ }
+ 
+ try {
+ console.log('[INFO] Preparando dados para Excel...');
+ 
+ // Preparar dados para o Excel
+ const dados = acoesFiltradasGlobal.map(acao => ({
+ 'Ticker': acao.ticker,
+ 'Nome': acao.nome_completo || acao.nome_curto || 'N/D',
+ 'Setor': acao.setor || 'N/D',
+ 'Preço (R$)': acao.preco_atual != null ? acao.preco_atual : 'N/D',
+ 'Dividend Yield (%)': acao.dividend_yield != null ? acao.dividend_yield.toFixed(2) : 'N/D',
+ 'P/L': acao.preco_lucro_pl && acao.preco_lucro_pl > 0 ? acao.preco_lucro_pl.toFixed(2) : 'N/D',
+ 'Beta': acao.beta != null ? acao.beta : 'N/D',
+ 'Volume Médio': acao.volume_medio || 'N/D',
+ 'Variação (%)': acao.variacao_dia != null ? acao.variacao_dia : 'N/D',
+ 'Máxima 52sem': acao.maxima_52_semanas != null ? acao.maxima_52_semanas : 'N/D',
+ 'Mínima 52sem': acao.minima_52_semanas != null ? acao.minima_52_semanas : 'N/D'
+ }));
+ 
+ console.log(`[INFO] ${dados.length} ações preparadas`);
+ 
+ // Criar workbook e worksheet
+ console.log('[INFO] Criando workbook...');
+ const ws = XLSX.utils.json_to_sheet(dados);
+ const wb = XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb, ws, 'Ações');
+ 
+ // Adicionar largura das colunas
+ ws['!cols'] = [
+ {wch: 10}, // Ticker
+ {wch: 35}, // Nome
+ {wch: 25}, // Setor
+ {wch: 12}, // Preço
+ {wch: 18}, // DY
+ {wch: 10}, // P/L
+ {wch: 10}, // Beta
+ {wch: 15}, // Volume
+ {wch: 12}, // Variação
+ {wch: 12}, // Máxima 52s
+ {wch: 12} // Mínima 52s
+ ];
+ 
+ // Download
+ console.log('[INFO] Gerando arquivo Excel...');
+ const dataHora = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+ XLSX.writeFile(wb, `investfacil_${dataHora}.xlsx`);
+ 
+ console.log(`[SUCCESS] Excel exportado com sucesso: ${acoesFiltradasGlobal.length} ações`);
+ 
+ } catch (erro) {
+ console.error('[ERRO] Erro ao exportar Excel:', erro);
+ alert(` Erro ao exportar Excel: ${erro.message}.\n\nTente novamente ou use a exportação CSV.`);
+ }
+ }
+ 
+ // Funcao para exportar CSV
+ 
+ function exportarCSV() {
+ if (acoesFiltradasGlobal.length === 0) {
+ alert(' Nenhuma ação para exportar. Ajuste os filtros.');
+ return;
+ }
+ 
+ // Cabeçalho do CSV
+ let csv = 'Ticker,Nome,Setor,Preço (R$),Dividend Yield (%),P/L,Beta,Volume Médio\n';
+ 
+ // Adicionar linhas
+ acoesFiltradasGlobal.forEach(acao => {
+ csv += `${acao.ticker},`;
+ csv += `"${(acao.nome_completo || acao.nome_curto || 'N/D').replace(/"/g, '""')}",`;
+ csv += `"${(acao.setor || 'N/D').replace(/"/g, '""')}",`;
+ csv += `${acao.preco_atual != null ? acao.preco_atual.toFixed(2) : 'N/D'},`;
+ csv += `${acao.dividend_yield != null ? acao.dividend_yield.toFixed(2) : 'N/D'},`;
+ csv += `${acao.preco_lucro_pl && acao.preco_lucro_pl > 0 ? acao.preco_lucro_pl.toFixed(2) : 'N/D'},`;
+ csv += `${acao.beta != null ? acao.beta.toFixed(2) : 'N/D'},`;
+ csv += `${acao.volume_medio || 'N/D'}\n`;
+ });
+ 
+ // Download
+ const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+ const link = document.createElement('a');
+ const url = URL.createObjectURL(blob);
+ const dataHora = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+ link.setAttribute('href', url);
+ link.setAttribute('download', `investfacil_${dataHora}.csv`);
+ link.style.visibility = 'hidden';
+ document.body.appendChild(link);
+ link.click();
+ document.body.removeChild(link);
+ }
+ 
+ // Funcao para exportar JSON
+ function exportarJSON() {
+ if (acoesFiltradasGlobal.length === 0) {
+ alert(' Nenhuma ação para exportar. Ajuste os filtros.');
+ return;
+ }
+ 
+ const json = JSON.stringify(acoesFiltradasGlobal, null, 2);
+ const blob = new Blob([json], { type: 'application/json' });
+ const link = document.createElement('a');
+ const url = URL.createObjectURL(blob);
+ const dataHora = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+ link.setAttribute('href', url);
+ link.setAttribute('download', `investfacil_${dataHora}.json`);
+ link.style.visibility = 'hidden';
+ document.body.appendChild(link);
+ link.click();
+ document.body.removeChild(link);
+ }
+ 
+ // Funcao para abrir o site da fonte selecionada
+  function abrirSiteFonte() {
+  const fonte = document.getElementById('fonte-info').value;
+  const urls = {
+  'statusinvest': 'https://statusinvest.com.br/acoes',
+  'fundamentus': 'https://www.fundamentus.com.br/',
+  'investidor10': 'https://investidor10.com.br/acoes',
+  'yahoofinance': 'https://finance.yahoo.com/',
+  'b3': 'https://www.b3.com.br/pt_br/produtos-e-servicos/negociacao/renda-variavel/empresas-listadas.htm',
+  'google': 'https://www.google.com/finance/'
+  };
+  window.open(urls[fonte] || urls['statusinvest'], '_blank', 'noopener,noreferrer');
+  }
+  
+  // Autocomplete: mostrar sugestoes de tickers ao digitar
+  function mostrarSugestoes() {
+  const input = document.getElementById('filter-ticker');
+  const sugestoesDiv = document.getElementById('ticker-suggestions');
+  const termo = input.value.trim().toLowerCase();
+  
+  if (termo.length < 2) {
+  sugestoesDiv.style.display = 'none';
+  return;
+  }
+  
+  const matches = acoesData.filter(acao => {
+  const ticker = (acao.ticker || '').toLowerCase();
+  const nome = (acao.nome_curto || '').toLowerCase();
+  const nomeCompleto = (acao.nome_completo || '').toLowerCase();
+  return ticker.includes(termo) || nome.includes(termo) || nomeCompleto.includes(termo);
+  }).slice(0, 15);
+  
+  if (matches.length === 0) {
+  sugestoesDiv.style.display = 'none';
+  return;
+  }
+  
+  sugestoesDiv.innerHTML = matches.map(a => 
+  '<div onclick="selecionarTicker(\'' + a.ticker + '\')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; transition: background 0.15s;" onmouseover="this.style.background=\'#f0f4ff\'" onmouseout="this.style.background=\'white\'">' +
+  '<strong style="color: #4c51bf;">' + a.ticker + '</strong> - ' + (a.nome_curto || a.nome_completo || 'N/D') +
+  '</div>'
+  ).join('');
+  sugestoesDiv.style.display = 'block';
+  }
+  
+  // Selecionar ticker da lista de sugestoes
+  function selecionarTicker(ticker) {
+  document.getElementById('filter-ticker').value = ticker;
+  document.getElementById('ticker-suggestions').style.display = 'none';
+  }
+  
+  // Fechar sugestoes ao clicar fora
+  document.addEventListener('click', function(e) {
+  const sugestoes = document.getElementById('ticker-suggestions');
+  const input = document.getElementById('filter-ticker');
+  if (e.target !== input && e.target !== sugestoes && !sugestoes.contains(e.target)) {
+  sugestoes.style.display = 'none';
+  }
+  });
+  
+  // Funcao para limpar filtros
+  function limparFiltros() {
+  document.getElementById('filter-ticker').value = '';
+  document.getElementById('filter-setor').value = '';
+  document.getElementById('filter-dy').value = '';
+  document.getElementById('filter-pl').value = '';
+  document.getElementById('ticker-suggestions').style.display = 'none';
+  aplicarFiltros();
+  }
+  
+  // Adicionar eventos aos filtros
+  // Ticker: mostra sugestoes ao digitar (nao filtra automaticamente)
+  document.getElementById('filter-ticker').addEventListener('input', mostrarSugestoes);
+  document.getElementById('filter-ticker').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+  e.preventDefault();
+  document.getElementById('ticker-suggestions').style.display = 'none';
+  aplicarFiltros();
+  }
+  });
+  
+  // Atualizar links dos tickers quando trocar a fonte
+  document.getElementById('fonte-info').addEventListener('change', aplicarFiltros);
+  
+  // Botoes Buscar e Limpar
+  document.getElementById('btn-buscar').addEventListener('click', function() {
+  document.getElementById('ticker-suggestions').style.display = 'none';
+  aplicarFiltros();
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+  });
+  document.getElementById('btn-limpar').addEventListener('click', limparFiltros);
+ 
+ // Eventos de exportação
+ document.getElementById('btn-export-excel').addEventListener('click', exportarExcel);
+ document.getElementById('btn-export-csv').addEventListener('click', exportarCSV);
+ document.getElementById('btn-export-json').addEventListener('click', exportarJSON);
+ 
+ // Iniciar aplicacao
+ carregarDados();
+ </script>
 </body>
 </html>

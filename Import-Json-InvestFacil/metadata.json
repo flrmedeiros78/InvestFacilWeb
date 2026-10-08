@@ -1,7 +1,11 @@
 {
   "projeto": "InvestFacil",
   "versao": "1.0",
+<<<<<<< Updated upstream
   "ultima_atualizacao": "2026-10-07 01:46:51 -03",
+=======
+  "ultima_atualizacao": "2026-10-08 01:05:25 -03",
+>>>>>>> Stashed changes
   "fonte_dados": "brapi.dev",
   "bolsas": [
     "B3"
