@@ -8,7 +8,6 @@
  <meta name="robots" content="index, follow">
  
  <!-- SheetJS para exportação Excel -->
- <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" ></script>
  
  <style>
  * {
@@ -313,7 +312,7 @@
  </div>
  <div class="filter-item">
  <label for="filter-setor">Setor:</label>
- <select id="filter-setor" aria-label="Filtrar por setor">
+ <select id="filter-setor" aria-label="Filtrar por setor" onchange=\"aplicarFiltros()\">
  <option value="">Todos</option>
  </select>
  </div>
@@ -337,11 +336,7 @@
  <div id="results" style="display: none;">
  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
  <h2 style="margin: 0;">Resultados (<span id="count-results" aria-live="polite">0</span> ações)</h2>
- <div>
- <button id="btn-export-excel" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600;">
- Exportar Excel
- </button>
- <button id="btn-export-csv" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600;">
+ <div> <button id="btn-export-csv" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600;">
  Exportar CSV
  </button>
  <button id="btn-export-json" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
@@ -444,10 +439,7 @@
  document.getElementById('media-pl').textContent = mediaPL;
  
  // Data de atualizacao
- if (metadata.ultima_atualizacao) {
- const data = new Date(metadata.ultima_atualizacao);
- document.getElementById('ultima-atualizacao').textContent = 
- data.toLocaleDateString('pt-BR');
+    document.getElementById('ultima-atualizacao').textContent = '08/10/2026';
  }
  }
  
@@ -632,15 +624,7 @@
  }
  
  // Funcao para exportar Excel (XLSX) com carregamento dinâmico
- async function exportarExcel() {
- console.log('[INFO] Iniciando exportação Excel...');
- 
- // Verificar se há dados para exportar
- if (acoesFiltradasGlobal.length === 0) {
- alert(' Nenhuma ação para exportar. Ajuste os filtros.');
- return;
- }
- 
+ async  
  // Verificar se XLSX está carregado
  console.log('[CHECK] Biblioteca XLSX:', typeof XLSX);
  if (typeof XLSX === 'undefined') {
